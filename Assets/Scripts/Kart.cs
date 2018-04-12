@@ -5,13 +5,19 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody))]
 public class Kart : MonoBehaviour
 {
-    const float maxSpeed = 100f;
-    Vector3 steeringForce = Vector3.zero;
+    public GameObject arrow;
+    public GameObject mesh;
 
-    float acceleration = 1000f;
-    float deacceleration = 10f;
-    float fakeGravity = 5f;
+    const float maxVelocity = 200f;
 
+    const float meshSteeringSpeed = 20f;
+
+    float acceleration = 400f;
+    float maxSteeringSpeed = 600f;
+    float deacceleration = 400f;
+    float friction = 200f;
+    float steeringSpeed;
+    const float cameraSpeed = 10f;
     new Rigidbody rigidbody;
 
     void Awake()
@@ -23,34 +29,73 @@ public class Kart : MonoBehaviour
     {
         float vertical = Input.GetAxis("Vertical");
         float horizontal = Input.GetAxis("Horizontal");
+        bool isDrifting = Input.GetButton("Jump");
+        Vector3 nextVelocity = rigidbody.velocity;
 
-
-        if (vertical > 0.5f)
+        if (nextVelocity.magnitude > 0)
         {
-            Vector3 steeringDirection = Quaternion.Euler(0, 90f * horizontal, 0) * transform.forward;
-            steeringForce += steeringDirection * acceleration * Time.deltaTime;
+            float deltaFriction = friction * Time.deltaTime;
+            if (nextVelocity.magnitude > deltaFriction)
+            {
+                nextVelocity = nextVelocity.normalized * (nextVelocity.magnitude - deltaFriction);
+            }
+            else
+            {
+                nextVelocity = Vector3.zero;
+            }
+        }
+
+        Vector3 steeringDirection = transform.forward;
+        float driftingFactor = isDrifting ? 0.75f : 1f;
+        if (vertical > 0)
+        {
+            steeringSpeed = Mathf.Min(steeringSpeed + acceleration * driftingFactor * Time.deltaTime, maxSteeringSpeed * driftingFactor);
+        }
+        else if (vertical < 0)
+        {
+            steeringSpeed = Mathf.Max(steeringSpeed - acceleration * Time.deltaTime, -maxSteeringSpeed);
         }
         else
         {
-            rigidbody.velocity *= deacceleration * Time.deltaTime;
+            steeringSpeed = Mathf.Max(steeringSpeed - deacceleration * Time.deltaTime, 0);
         }
 
-        rigidbody.AddForce(steeringForce * Time.deltaTime);
+
+        float steeringAngle = 45f * horizontal;
+        if (isDrifting)
+        {
+            steeringAngle *= 2;
+        }
+        steeringDirection = Quaternion.Euler(0, steeringAngle, 0) * transform.forward;
+        Vector3 kartOrientation = Quaternion.Euler(0, steeringAngle / 2f, 0) * transform.forward;
+        arrow.transform.forward = steeringDirection;
+        nextVelocity += steeringDirection * steeringSpeed * Time.deltaTime;
+
+        mesh.transform.forward = Vector3.Lerp(mesh.transform.forward, kartOrientation, meshSteeringSpeed * Time.deltaTime);
+
         rigidbody.useGravity = !IsGrounded();
 
-        if (steeringForce.magnitude > 10f)
+        if (nextVelocity.magnitude > maxVelocity)
         {
-            Vector3 newForward = rigidbody.velocity;
+            nextVelocity = nextVelocity.normalized * maxVelocity;
+        }
+
+        rigidbody.velocity = nextVelocity;
+
+
+        if (nextVelocity.magnitude > 0)
+        {
+            Vector3 newForward = nextVelocity;
             newForward.y = 0;
-            transform.forward = newForward.normalized;
+            transform.forward = Vector3.Lerp(transform.forward, newForward.normalized, cameraSpeed * Time.deltaTime);
 
         }
-	}
+    }
 
     bool IsGrounded()
     {
-        var hits = Physics.RaycastAll(transform.position, Vector3.down, 0.6f);
-        Debug.DrawLine(transform.position, transform.position + Vector3.down * 0.6f);
+        var hits = Physics.RaycastAll(transform.position, -transform.up, 0.6f);
+        Debug.DrawLine(transform.position, transform.position + -transform.up * 0.6f);
         foreach (var hit in hits)
         {
             if (hit.collider.tag == "Player")
