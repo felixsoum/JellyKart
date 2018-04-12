@@ -1,23 +1,20 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody))]
 public class Kart : MonoBehaviour
 {
-    public GameObject arrow;
     public GameObject mesh;
+    public GameObject cameraOffset;
 
+    float cameraOffsetAngle;
     const float maxVelocity = 200f;
-
     const float meshSteeringSpeed = 20f;
-
-    float acceleration = 400f;
-    float maxSteeringSpeed = 600f;
-    float deacceleration = 400f;
+    float acceleration = 300f;
+    float maxSteeringSpeed = 400f;
+    float deacceleration = 300f;
     float friction = 200f;
     float steeringSpeed;
-    const float cameraSpeed = 10f;
+    const float forwardRotationSpeed = 10f;
     new Rigidbody rigidbody;
 
     void Awake()
@@ -27,6 +24,17 @@ public class Kart : MonoBehaviour
 	
 	void Update()
     {
+        if (IsGrounded())
+        {
+            rigidbody.useGravity = false;
+            TrackCamera();
+        }
+        else
+        {
+            rigidbody.useGravity = true;
+            return;
+        }
+
         float vertical = Input.GetAxis("Vertical");
         float horizontal = Input.GetAxis("Horizontal");
         bool isDrifting = Input.GetButton("Jump");
@@ -60,20 +68,17 @@ public class Kart : MonoBehaviour
             steeringSpeed = Mathf.Max(steeringSpeed - deacceleration * Time.deltaTime, 0);
         }
 
-
         float steeringAngle = 45f * horizontal;
         if (isDrifting)
         {
             steeringAngle *= 2;
         }
+        
         steeringDirection = Quaternion.Euler(0, steeringAngle, 0) * transform.forward;
         Vector3 kartOrientation = Quaternion.Euler(0, steeringAngle / 2f, 0) * transform.forward;
-        arrow.transform.forward = steeringDirection;
         nextVelocity += steeringDirection * steeringSpeed * Time.deltaTime;
 
         mesh.transform.forward = Vector3.Lerp(mesh.transform.forward, kartOrientation, meshSteeringSpeed * Time.deltaTime);
-
-        rigidbody.useGravity = !IsGrounded();
 
         if (nextVelocity.magnitude > maxVelocity)
         {
@@ -82,13 +87,11 @@ public class Kart : MonoBehaviour
 
         rigidbody.velocity = nextVelocity;
 
-
-        if (nextVelocity.magnitude > 0)
+        if (nextVelocity.magnitude > 1)
         {
             Vector3 newForward = nextVelocity;
             newForward.y = 0;
-            transform.forward = Vector3.Lerp(transform.forward, newForward.normalized, cameraSpeed * Time.deltaTime);
-
+            transform.forward = Vector3.Lerp(transform.forward, newForward.normalized, forwardRotationSpeed * Time.deltaTime);
         }
     }
 
@@ -105,5 +108,11 @@ public class Kart : MonoBehaviour
             return true;
         }
         return false;
+    }
+
+    void TrackCamera()
+    {
+        Camera.main.transform.position = cameraOffset.transform.position;
+        Camera.main.transform.rotation = cameraOffset.transform.rotation;
     }
 }
