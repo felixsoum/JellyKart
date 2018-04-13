@@ -69,7 +69,7 @@ public class Kart : MonoBehaviour
         
         steeringDirection = Quaternion.Euler(0, steeringAngle, 0) * transform.forward;
         Vector3 kartOrientation = Quaternion.Euler(0, steeringAngle / 2f, 0) * transform.forward;
-        nextVelocity += steeringDirection * Mathf.Sqrt(steeringSpeed);
+        nextVelocity += steeringDirection * Mathf.Sqrt(Mathf.Abs(steeringSpeed)) * Mathf.Sign(steeringSpeed);
 
         mesh.transform.forward = Vector3.Lerp(mesh.transform.forward, kartOrientation, meshSteeringSpeed * Time.deltaTime);
 
