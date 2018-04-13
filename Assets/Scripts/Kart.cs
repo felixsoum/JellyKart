@@ -9,13 +9,14 @@ public class Kart : MonoBehaviour
     float cameraOffsetAngle;
     const float maxVelocity = 200f;
     const float meshSteeringSpeed = 20f;
-    float acceleration = 300f;
-    float maxSteeringSpeed = 400f;
-    float deacceleration = 300f;
-    float friction = 200f;
+    float maxSteeringSpeed = 100f;
+    float acceleration = 20f;
+    float deacceleration = 20f;
+    float friction = 3f;
     float steeringSpeed;
     const float forwardRotationSpeed = 10f;
     new Rigidbody rigidbody;
+    Vector3 steeringVelocity = Vector3.zero;
 
     void Awake()
     {
@@ -38,23 +39,15 @@ public class Kart : MonoBehaviour
         float vertical = Input.GetAxis("Vertical");
         float horizontal = Input.GetAxis("Horizontal");
         bool isDrifting = Input.GetButton("Jump");
-        Vector3 nextVelocity = rigidbody.velocity;
 
+        Vector3 nextVelocity = steeringVelocity;
         if (nextVelocity.magnitude > 0)
         {
-            float deltaFriction = friction * Time.deltaTime;
-            if (nextVelocity.magnitude > deltaFriction)
-            {
-                nextVelocity = nextVelocity.normalized * (nextVelocity.magnitude - deltaFriction);
-            }
-            else
-            {
-                nextVelocity = Vector3.zero;
-            }
+            nextVelocity = nextVelocity.normalized * nextVelocity.magnitude * (1 - friction * Time.deltaTime);
         }
 
         Vector3 steeringDirection = transform.forward;
-        float driftingFactor = isDrifting ? 0.75f : 1f;
+        float driftingFactor = isDrifting ? 1 : 1f;
         if (vertical > 0)
         {
             steeringSpeed = Mathf.Min(steeringSpeed + acceleration * driftingFactor * Time.deltaTime, maxSteeringSpeed * driftingFactor);
@@ -76,7 +69,7 @@ public class Kart : MonoBehaviour
         
         steeringDirection = Quaternion.Euler(0, steeringAngle, 0) * transform.forward;
         Vector3 kartOrientation = Quaternion.Euler(0, steeringAngle / 2f, 0) * transform.forward;
-        nextVelocity += steeringDirection * steeringSpeed * Time.deltaTime;
+        nextVelocity += steeringDirection * Mathf.Sqrt(steeringSpeed);
 
         mesh.transform.forward = Vector3.Lerp(mesh.transform.forward, kartOrientation, meshSteeringSpeed * Time.deltaTime);
 
@@ -86,7 +79,7 @@ public class Kart : MonoBehaviour
         }
 
         rigidbody.velocity = nextVelocity;
-
+        steeringVelocity = nextVelocity;
         if (nextVelocity.magnitude > 1)
         {
             Vector3 newForward = nextVelocity;
