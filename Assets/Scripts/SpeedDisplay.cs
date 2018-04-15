@@ -13,6 +13,7 @@ public class SpeedDisplay : MonoBehaviour
 	
 	void Update()
     {
-        text.text = rigidbody.velocity.magnitude.ToString();	
+        int speed = (int)rigidbody.velocity.magnitude;
+        text.text = speed.ToString();	
 	}
 }
