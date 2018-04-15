@@ -1,4 +1,4 @@
 # JellyKart
 
-Arrows/WASD = Accelerate + Steer
-Spacebar(Jump) = Drift
+#### Arrows/WASD = Accelerate + Steer
+#### Spacebar(Jump) = Drift
